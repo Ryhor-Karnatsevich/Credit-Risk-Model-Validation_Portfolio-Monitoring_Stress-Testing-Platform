@@ -18,15 +18,53 @@ The project follows this simple pipeline:
 10. Monitor changes in the model and portfolio, then test adverse scenarios.
 11. Produce a final report explaining the results, risks, limitations, and required actions.
 
+## What the project will model
+
+The unit of analysis is one Freddie Mac fixed-rate mortgage observed when it first enters the monthly performance data.
+
+The main model will estimate:
+
+> The probability that the mortgage becomes seriously delinquent or reaches a credit-loss event within the next 12 months.
+
+The initial default definition will be triggered by either:
+
+- delinquency of 90 days or more; or
+- a terminal credit event such as a third-party sale, short sale, charge-off, or REO disposition.
+
+Only information available at origination or at the first observation date will be used as model input. Later payment behaviour, modifications, recoveries, expenses, and loan outcomes will be reserved for target construction, validation, and loss analysis. This separation prevents future information from leaking into the model.
+
+The logistic-regression model will be the interpretable baseline. A gradient-boosting model will be the challenger. Both will be tested on later loan cohorts that were not used for model development or calibration.
+
+## Data needed
+
+| Data group | Main fields | Use in the project |
+|---|---|---|
+| Mortgage characteristics | Credit score, DTI, LTV/CLTV, original balance, interest rate, term, loan purpose, occupancy, property type and state | PD model inputs and segment analysis |
+| Monthly loan performance | Reporting month, current balance, delinquency status, modification flag, termination code and termination date | Target construction, monitoring and cohort outcomes |
+| Loss and recovery data | Sales proceeds, mortgage-insurance recoveries, other recoveries, expenses, deferred balance and actual loss | LGD, EAD and expected-loss analysis |
+| Macroeconomic data | Unemployment, house-price index, mortgage rate and federal funds rate | Economic context, monitoring and stress scenarios |
+
+## Selected data sources
+
+| Source | Purpose | Current situation |
+|---|---|---|
+| Freddie Mac Single-Family Loan-Level Dataset | Primary origination, performance and actual-loss data | Public sample and metadata extracted; full historical files require free registration and acceptance of the data terms |
+| FRED `UNRATE` | US unemployment rate | Extracted |
+| FRED `USSTHPI` | US house-price index | Extracted |
+| FRED `MORTGAGE30US` | 30-year fixed mortgage rate | Extracted |
+| FRED `FEDFUNDS` | Effective federal funds rate | Extracted |
+
+The modelling population is restricted to mortgages purchased or guaranteed by Freddie Mac. Results will not be presented as representative of rejected applicants, unsecured consumer loans, or the full US mortgage market.
+
 ## Research stages
 
 | Index | Name | Current situation |
 |---:|---|---|
-| 0 | Define research objective and model use | In progress |
-| 1 | Identify candidate public datasets | |
-| 2 | Compare datasets and complete the feasibility gate | |
-| 3 | Define the model population | |
-| 4 | Define default and the performance horizon | |
+| 0 | Define research objective and model use | Complete |
+| 1 | Identify candidate public datasets | Complete |
+| 2 | Compare datasets and complete the feasibility gate | In progress |
+| 3 | Define the model population | Complete |
+| 4 | Define default and the performance horizon | In progress |
 | 5 | Review field availability and create the leakage register | |
 | 6 | Construct mature loan cohorts | |
 | 7 | Run data-quality checks | |
@@ -51,3 +89,20 @@ The project follows this simple pipeline:
 | 26 | Add tests, run metadata, and the audit trail | |
 | 27 | Document final findings, limitations, and conclusions | |
 | 28 | Optional correlated-default and economic-capital extension | |
+
+## High-level project stages
+
+| Index | Name | Current situation |
+|---:|---|---|
+| 0 | Scope and data feasibility gate | In progress |
+| 1 | Cohort construction and data-quality system | |
+| 2 | Exploratory credit-risk analysis | |
+| 3 | Interpretable logistic-regression PD baseline | |
+| 4 | Machine-learning challenger development | |
+| 5 | Independent model validation | |
+| 6 | Portfolio expected-loss layer | |
+| 7 | Portfolio and model monitoring framework | |
+| 8 | Scenario and stress testing | |
+| 9 | Automated validation and management reporting | |
+| 10 | Engineering, testing, and audit trail | |
+| 11 | Optional correlated-default and economic-capital extension | |
