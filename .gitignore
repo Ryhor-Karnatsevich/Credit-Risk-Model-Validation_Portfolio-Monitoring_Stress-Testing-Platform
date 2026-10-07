@@ -27,3 +27,7 @@ data/*
 
 # Local project plan
 /plan.md
+
+# Generated loan tables (keep the folder, exclude loan-level exports)
+/results/*
+!/results/.gitkeep

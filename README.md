@@ -2,6 +2,77 @@
 
 An end-to-end credit-risk project covering PD model development, independent validation, portfolio monitoring, expected-loss analysis, and stress testing.
 
+## Agreed mortgage scope and data acquisition
+
+Decision recorded: 7 October 2026. The project will study US residential fixed-rate mortgages using Freddie Mac's Standard Single-Family Loan-Level Dataset.
+
+Main question: What is the probability that an eligible mortgage becomes seriously delinquent or reaches a credit-loss event within the next 12 months?
+
+The observation date is provisionally the first monthly performance record. We must check loan age and initial delinquency and define eligibility before freezing the population. Performance starts at Freddie Mac acquisition; it does not necessarily start at origination. The proposed 90+ day delinquency and terminal-event definition still needs code-level confirmation against the official dictionary.
+
+### What already exists
+
+- src/data/data_feasibility.py checks required local files, counts example rows and unique loan IDs, and reports usable macro observation counts and date ranges.
+- Its PASS message confirms the inventory only; it is not a completed data-feasibility decision.
+- Local raw files include the Release 47 format examples, origination/performance headers, the July 2026 layout, and four FRED series.
+- There is no historical loan downloader, joined modelling table, target construction, temporal split, trained model, loss calculation, monitoring system, or stress engine.
+- The format examples contain 1,000 origination loans and 12 performance loans. They are not the annual research sample and must not be assumed to form a usable modelling cohort.
+
+### Required data and proposed period
+
+| Data | Proposed coverage | Required information |
+|---|---|---|
+| Standard mortgage origination | 2012-2023 cohorts | Loan ID, first payment date, maturity, credit score, DTI, LTV/CLTV, original balance, rate, term, purpose, occupancy, property type/state |
+| Corresponding monthly performance | All available months for those cohorts in one frozen release | Reporting month, balance, delinquency, loan age, modifications, termination reason/date, reporting gaps |
+| Loss and recovery fields | Retain the full available histories, including later resolutions | Actual loss, removal balance, recoveries, sales proceeds, expenses, accrued interest |
+| FRED UNRATE, USSTHPI, MORTGAGE30US, FEDFUNDS | At least 2011 through the loan-performance cutoff | Dates, values, frequency, source and release/vintage information |
+| Official documentation | Same release as the loan files | Layout, dictionary, release notes, usage terms |
+
+Provisional cohort split: development 2012-2017, validation/calibration 2018-2019, final out-of-time test 2020-2023. These dates are a proposal, not a frozen research design. Ensure training and calibration outcomes would be available before the next evaluation begins; apply boundary gaps or move dates as needed for the 12-month horizon and reporting lag.
+
+Require a complete observable outcome window or a documented terminal outcome. Missing reports and unexplained disappearance do not mean non-default. Recoveries can take longer than 12 months, so do not truncate all histories at the PD horizon. Mortgage prepayments need an explicit target treatment.
+
+Historical macro values may be revised. Use release dates/vintages or defensible lags when treating macro variables as prediction inputs. Stress scenarios can use explicitly stated assumptions.
+
+### Access and completeness
+
+Freddie Mac provides free access for non-commercial research subject to registration and applicable terms. The available archive covers the proposed cohort years, but it represents Freddie Mac's disclosed population, not all US mortgages. Raw data must remain local and excluded from Git.
+
+Neither error-free source data nor uninterrupted downloads can be guaranteed. Verify archive integrity, schema, loan-ID joins, monthly coverage, duplicates, missing/sentinel values, and default counts. Freeze the release and record source URLs, download dates and file hashes.
+
+Official sources:
+- https://www.freddiemac.com/research/datasets/sf-loanlevel-dataset
+- https://www.freddiemac.com/fmac-resources/research/pdf/faq.pdf
+- https://www.freddiemac.com/fmac-resources/research/pdf/user_guide.pdf
+
+### Download scale
+
+Two legitimate options exist:
+- Annual research sample: 50,000 randomly selected loans per full origination year, with corresponding monthly histories and the same fields. For 2012-2023 this is approximately 600,000 loans before exclusions. Check whether defaults, resolved losses and segment counts suffice before choosing it for the completed research.
+- Full Standard Dataset for the selected years: many millions of loans and much larger monthly files. Exact selected-period loan counts and archive sizes must be measured from the download catalogue; they are not verified yet.
+
+Illustrative storage arithmetic, not a measured download estimate: 600,000 loans times 60 monthly records averages 36 million performance rows. At 150-300 bytes per text row this is about 5.4-10.8 GB of performance text before compression, excluding archives, derived tables and temporary files. Actual loan lifetimes and row widths vary considerably. Full selected-period files could require tens to hundreds of GB unpacked; verify actual sizes before downloading.
+
+Next step: inspect the authenticated catalogue, record sizes for 2012-2023, then validate one annual historical sample. Do not start modelling before the feasibility gate is complete.
+
+
+## High-level project stages
+
+| Index | Name | Current situation |
+|---:|---|---|
+| 0 | Scope and data feasibility gate | In progress |
+| 1 | Cohort construction and data-quality system | |
+| 2 | Exploratory credit-risk analysis | |
+| 3 | Interpretable logistic-regression PD baseline | |
+| 4 | Machine-learning challenger development | |
+| 5 | Independent model validation | |
+| 6 | Portfolio expected-loss layer | |
+| 7 | Portfolio and model monitoring framework | |
+| 8 | Scenario and stress testing | |
+| 9 | Automated validation and management reporting | |
+| 10 | Engineering, testing, and audit trail | |
+| 11 | Optional correlated-default and economic-capital extension | |
+
 ## IDEA
 
 The project follows this simple pipeline:
@@ -90,19 +161,3 @@ The modelling population is restricted to mortgages purchased or guaranteed by F
 | 27 | Document final findings, limitations, and conclusions | |
 | 28 | Optional correlated-default and economic-capital extension | |
 
-## High-level project stages
-
-| Index | Name | Current situation |
-|---:|---|---|
-| 0 | Scope and data feasibility gate | In progress |
-| 1 | Cohort construction and data-quality system | |
-| 2 | Exploratory credit-risk analysis | |
-| 3 | Interpretable logistic-regression PD baseline | |
-| 4 | Machine-learning challenger development | |
-| 5 | Independent model validation | |
-| 6 | Portfolio expected-loss layer | |
-| 7 | Portfolio and model monitoring framework | |
-| 8 | Scenario and stress testing | |
-| 9 | Automated validation and management reporting | |
-| 10 | Engineering, testing, and audit trail | |
-| 11 | Optional correlated-default and economic-capital extension | |
