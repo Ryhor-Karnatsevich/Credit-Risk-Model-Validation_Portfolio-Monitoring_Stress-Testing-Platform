@@ -6,6 +6,11 @@ from pathlib import Path
 
 import pandas as pd
 
+if __package__:
+    from .schema import get_headers
+else:
+    from schema import get_headers
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_DIR = PROJECT_ROOT / "data" / "raw" / "freddie_mac"
 RESULTS_DIR = PROJECT_ROOT / "results"
@@ -104,12 +109,6 @@ def prepare_display_table(table, name):
     return result.rename(columns=lambda column: READABLE_NAMES.get(column, column.title()))
 
 
-def load_headers(filename):
-    return (SOURCE_DIR / "headers" / filename).read_text(
-        encoding="utf-8-sig"
-    ).strip().split("|")
-
-
 def find_origination(files, headers, loan_id):
     id_index = headers.index("LOAN IDENTIFIER")
     for path in files:
@@ -152,8 +151,8 @@ def show_loan(year=2017, loan_id="F17Q10000469"):
     if not orig_files or not perf_files:
         raise FileNotFoundError(f"Origination or performance files missing in {folder}")
 
-    orig_headers = load_headers("origination_data_file_header.txt")
-    perf_headers = load_headers("performance_data_file_header.txt")
+    orig_headers = get_headers("orig")
+    perf_headers = get_headers("perf")
     orig_row = find_origination(orig_files, orig_headers, loan_id)
     perf_rows = find_performance(perf_files, perf_headers, loan_id)
 

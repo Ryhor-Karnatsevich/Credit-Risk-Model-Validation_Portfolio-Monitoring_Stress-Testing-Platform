@@ -2,6 +2,10 @@
 
 An end-to-end credit-risk project covering PD model development, independent validation, portfolio monitoring, expected-loss analysis, and stress testing.
 
+## [1] Data audit
+
+[2026 dataset overview (PDF)](results/data_audit/dataset_overview_2026.pdf)
+
 ## Agreed mortgage scope and data acquisition
 
 Decision recorded: 7 October 2026. The project will study US residential fixed-rate mortgages using Freddie Mac's Standard Single-Family Loan-Level Dataset.
@@ -12,11 +16,11 @@ The observation date is provisionally the first monthly performance record. We m
 
 ### What already exists
 
-- src/data/data_feasibility.py checks required local files, counts example rows and unique loan IDs, and reports usable macro observation counts and date ranges.
-- Its PASS message confirms the inventory only; it is not a completed data-feasibility decision.
-- Local raw files include the Release 47 format examples, origination/performance headers, the July 2026 layout, and four FRED series.
+- Full annual archives and extracted origination/performance files for 2012-2026 are stored locally, alongside four FRED series.
+- `src/data/dataset_info.py`, `loan_tables.py`, and `data_audit.py` inspect a selected year or loan. Shared column definitions live in `src/data/schema.py`, not in a raw-data support folder.
+- Obsolete format examples, layout downloads and the old raw-data `views` folder have been removed. Generated outputs belong in `results/`.
+- The data-quality audit still needs review; extraction alone is not a completed data-feasibility decision.
 - There is no historical loan downloader, joined modelling table, target construction, temporal split, trained model, loss calculation, monitoring system, or stress engine.
-- The format examples contain 1,000 origination loans and 12 performance loans. They are not the annual research sample and must not be assumed to form a usable modelling cohort.
 
 ### Required data and proposed period
 
@@ -53,7 +57,7 @@ Two legitimate options exist:
 
 Illustrative storage arithmetic, not a measured download estimate: 600,000 loans times 60 monthly records averages 36 million performance rows. At 150-300 bytes per text row this is about 5.4-10.8 GB of performance text before compression, excluding archives, derived tables and temporary files. Actual loan lifetimes and row widths vary considerably. Full selected-period files could require tens to hundreds of GB unpacked; verify actual sizes before downloading.
 
-Next step: inspect the authenticated catalogue, record sizes for 2012-2023, then validate one annual historical sample. Do not start modelling before the feasibility gate is complete.
+Next step: audit one extracted full year and review the findings before proceeding. Do not start modelling before the feasibility gate is complete.
 
 
 ## High-level project stages
@@ -119,7 +123,7 @@ The logistic-regression model will be the interpretable baseline. A gradient-boo
 
 | Source | Purpose | Current situation |
 |---|---|---|
-| Freddie Mac Single-Family Loan-Level Dataset | Primary origination, performance and actual-loss data | Public sample and metadata extracted; full historical files require free registration and acceptance of the data terms |
+| Freddie Mac Single-Family Loan-Level Dataset | Primary origination, performance and actual-loss data | Full annual archives for 2012-2026 extracted locally; data-quality review pending |
 | FRED `UNRATE` | US unemployment rate | Extracted |
 | FRED `USSTHPI` | US house-price index | Extracted |
 | FRED `MORTGAGE30US` | 30-year fixed mortgage rate | Extracted |

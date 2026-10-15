@@ -18,6 +18,11 @@ from multiprocessing import get_context
 import numpy as np
 import pandas as pd
 
+if __package__:
+    from .schema import get_headers as headers_for
+else:
+    from schema import get_headers as headers_for
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_DIR = PROJECT_ROOT / "data" / "raw" / "freddie_mac"
 MONTH_BASE = 1990 * 12
@@ -86,16 +91,6 @@ def month_numbers(values):
 def month_label(offset):
     year, month = divmod(offset + MONTH_BASE, 12)
     return f"{year:04d}-{month + 1:02d}"
-
-
-def headers_for(kind):
-    filename = ("origination" if kind == "orig" else "performance") + "_data_file_header.txt"
-    headers = (SOURCE_DIR / "headers" / filename).read_text(
-        encoding="utf-8-sig"
-    ).strip().split("|")
-    if len(headers) != len(set(headers)):
-        raise ValueError(f"Duplicate column names in {filename}")
-    return headers
 
 
 def audit_columns(frame, totals):

@@ -4,6 +4,11 @@ import argparse
 import csv
 from pathlib import Path
 
+if __package__:
+    from .schema import get_headers
+else:
+    from schema import get_headers
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_DIR = PROJECT_ROOT / "data" / "raw" / "freddie_mac"
 
@@ -30,12 +35,8 @@ def show_info(year, count=True):
     print(f"Mortgage origination cohort: {year}", flush=True)
     print("orig: one row per mortgage; perf: one row per mortgage per month.")
     print("The cohort year is not the end date of its performance history.\n")
-    for kind, header_name in (
-        ("orig", "origination_data_file_header.txt"),
-        ("perf", "performance_data_file_header.txt"),
-    ):
-        header_path = SOURCE_DIR / "headers" / header_name
-        headers = header_path.read_text(encoding="utf-8-sig").strip().split("|")
+    for kind in ("orig", "perf"):
+        headers = get_headers(kind)
         print(f"{kind.upper()} columns ({len(headers)}):")
         for index, name in enumerate(headers, 1):
             print(f"  {index:2}. {name}")
