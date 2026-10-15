@@ -2,10 +2,6 @@
 
 An end-to-end credit-risk project covering PD model development, independent validation, portfolio monitoring, expected-loss analysis, and stress testing.
 
-## [1] Data audit
-
-[2026 dataset overview (PDF)](results/data_audit/dataset_overview_2026.pdf)
-
 ## Agreed mortgage scope and data acquisition
 
 Decision recorded: 7 October 2026. The project will study US residential fixed-rate mortgages using Freddie Mac's Standard Single-Family Loan-Level Dataset.
@@ -164,4 +160,8 @@ The modelling population is restricted to mortgages purchased or guaranteed by F
 | 26 | Add tests, run metadata, and the audit trail | |
 | 27 | Document final findings, limitations, and conclusions | |
 | 28 | Optional correlated-default and economic-capital extension | |
+
+## [1] Data audit
+
+Dataset year: 2012. Audit results pending.
 
