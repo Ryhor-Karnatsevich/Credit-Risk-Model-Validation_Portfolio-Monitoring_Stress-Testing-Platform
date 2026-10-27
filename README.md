@@ -13,9 +13,10 @@ The observation date is provisionally the first monthly performance record. We m
 ### What already exists
 
 - Full annual archives and extracted origination/performance files for 2012-2026 are stored locally, alongside four FRED series.
-- `src/data/dataset_info.py`, `loan_tables.py`, and `data_audit.py` inspect a selected year or loan. Shared column definitions live in `src/data/schema.py`, not in a raw-data support folder.
+- Part 1 is implemented in `src/data_extracting/`. Its pipeline prepares all 112 required files for 2012-2025 using Parquet -> TXT -> local ZIP fallback, then runs basic checks. Downloads remain manual. The latest pipeline report passed all 112 required files; existing Parquets did not require TXT comparisons to be repeated.
+- The retained TXT-Parquet comparison report is `results/data_extracting/parquet_comparison.md`. It records 114 basic passes across the downloaded 2012-2026 files. The 2026 Q1 files are retained but excluded from the current pipeline scope.
 - Obsolete format examples, layout downloads and the old raw-data `views` folder have been removed. Generated outputs belong in `results/`.
-- The data-quality audit still needs review; extraction alone is not a completed data-feasibility decision.
+- Data preparation and basic conversion checks are complete. Loan-level data-quality checks and modelling feasibility are not yet complete.
 - There is no historical loan downloader, joined modelling table, target construction, temporal split, trained model, loss calculation, monitoring system, or stress engine.
 
 ### Required data and proposed period
@@ -45,15 +46,15 @@ Official sources:
 - https://www.freddiemac.com/fmac-resources/research/pdf/faq.pdf
 - https://www.freddiemac.com/fmac-resources/research/pdf/user_guide.pdf
 
-### Download scale
+### Measured dataset size
 
-Two legitimate options exist:
-- Annual research sample: 50,000 randomly selected loans per full origination year, with corresponding monthly histories and the same fields. For 2012-2023 this is approximately 600,000 loans before exclusions. Check whether defaults, resolved losses and segment counts suffice before choosing it for the completed research.
-- Full Standard Dataset for the selected years: many millions of loans and much larger monthly files. Exact selected-period loan counts and archive sizes must be measured from the download catalogue; they are not verified yet.
+The downloaded full Standard files for 2012-2026 contain 114 origination/performance files. Their extracted TXT size is **148.16 GiB**; the Parquet copies occupy **16.67 GiB**, an **88.75% reduction** (approximately **8.89 times smaller**).
 
-Illustrative storage arithmetic, not a measured download estimate: 600,000 loans times 60 monthly records averages 36 million performance rows. At 150-300 bytes per text row this is about 5.4-10.8 GB of performance text before compression, excluding archives, derived tables and temporary files. Actual loan lifetimes and row widths vary considerably. Full selected-period files could require tens to hundreds of GB unpacked; verify actual sizes before downloading.
+The conversion uses lossless Zstandard compression and preserves all source columns as strings, including identifiers, leading zeros, empty fields and missing-value codes. No rows or columns are intentionally filtered. All 114 file pairs passed row-count, column/schema and first-100-row value comparisons. These are basic conversion checks, not an exhaustive comparison of every value.
 
-Next step: audit one extracted full year and review the findings before proceeding. Do not start modelling before the feasibility gate is complete.
+ZIP and TXT originals are still retained. The storage figures compare representations; they do not mean that the original copies have been deleted or that analysis runs 8.89 times faster. Analysis speed has not been benchmarked.
+
+Next step: check loan-level data quality using Parquet and review the findings before modelling.
 
 
 ## High-level project stages
@@ -161,7 +162,15 @@ The modelling population is restricted to mortgages purchased or guaranteed by F
 | 27 | Document final findings, limitations, and conclusions | |
 | 28 | Optional correlated-default and economic-capital extension | |
 
-## [1] Data audit
+## [1] Data extracting
 
-Dataset year: 2012. Audit results pending.
+Status recorded: 27 October 2026. Initial data-preparation pipeline complete.
+
+- Manual download -> local ZIP/TXT fallback -> Parquet conversion -> basic checks.
+- Current pipeline scope: 2012-2025, all four quarters, origination and performance; **112/112 passed**.
+- Full downloaded conversion: 2012-2026 Q1; **114/114 file pairs passed basic TXT-Parquet comparisons**.
+- **148.16 GiB TXT -> 16.67 GiB Parquet: 88.75% less storage using lossless compression.**
+- Retained results: [Data comparison](results/data_extracting/parquet_comparison.md).
+
+Part 1 code is in `src/data_extracting/`; its reports are saved in `results/data_extracting/`.
 

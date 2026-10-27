@@ -1,6 +1,6 @@
 """Convert missing Parquet files for every locally extracted year.
 
-Run: python src/data/convert_missing_parquets.py
+Run: python src/data_extracting/convert_missing_parquets.py
 Input:  data/raw/freddie_mac/extracted/<year>/*.txt
 Output: data/raw/freddie_mac/parquets/<year>/*.parquet
 
@@ -24,8 +24,10 @@ import pyarrow.csv as csv
 import pyarrow.parquet as pq
 
 if __package__:
+    from .extract_missing_txt import archive_candidates, ensure_source
     from .schema import get_headers
 else:
+    from extract_missing_txt import archive_candidates, ensure_source
     from schema import get_headers
 
 
@@ -98,16 +100,23 @@ def convert_task(source, destination, kind):
     """Top-level worker function so Windows can start a separate process."""
     destination.parent.mkdir(parents=True, exist_ok=True)
     print(f"START {source.parent.name}/{source.name}", flush=True)
+    ensure_source(source)
     convert_file(source, destination, kind)
 
 
-def main(workers=2):
-    if not EXTRACTED.is_dir():
+def main(workers=2, years=None, sources=None):
+    if sources is None and not EXTRACTED.is_dir():
         raise FileNotFoundError(f"Extracted folder not found: {EXTRACTED}")
 
     pending = []
     kept = 0
-    for folder in sorted(EXTRACTED.iterdir()):
+    selected = list(sources) if sources is not None else []
+    folders = ([] if sources is not None else
+               sorted(EXTRACTED.iterdir()) if years is None else
+               [EXTRACTED / str(year) for year in sorted(set(years))])
+    for folder in folders:
+        if years is not None and not folder.is_dir():
+            raise FileNotFoundError(f"Missing extracted year: {folder}")
         if not folder.is_dir() or not re.fullmatch(r"[0-9]{4}", folder.name):
             continue
         year = folder.name
@@ -123,29 +132,37 @@ def main(workers=2):
             counterpart = "perf" if kind == "orig" else "orig"
             if (counterpart, quarter) not in pairs:
                 raise FileNotFoundError(f"Missing {counterpart}_{year}Q{quarter}.txt")
-            destination = PARQUETS / year / (source.stem + ".parquet")
-            if not destination.exists():
-                pending.append((source, destination, kind))
-                continue
-            try:
-                metadata = pq.read_metadata(destination)
-                expected = pa.schema([(name, pa.string()) for name in get_headers(kind)])
-                if not metadata.schema.to_arrow_schema().equals(expected):
-                    raise ValueError("Unexpected column names or types")
-            except Exception as error:
-                raise ValueError(
-                    f"Existing output cannot be accepted: {destination}\n"
-                    "It has not been deleted or overwritten. Review it before restarting."
-                ) from error
-            kept += 1
-            print(f"KEEP {year}/{destination.name} (footer/schema checked)", flush=True)
+            selected.append((source, kind))
+
+    for source, kind in selected:
+        year = source.parent.name
+        destination = PARQUETS / year / (source.stem + ".parquet")
+        if not destination.exists():
+            if not source.is_file() and not any(path.is_file() for path in archive_candidates(source)):
+                raise FileNotFoundError(
+                    f"Missing Parquet, TXT and local ZIP for {year}/{source.name}"
+                )
+            pending.append((source, destination, kind))
+            continue
+        try:
+            metadata = pq.read_metadata(destination)
+            expected = pa.schema([(name, pa.string()) for name in get_headers(kind)])
+            if metadata.num_rows <= 0 or not metadata.schema.to_arrow_schema().equals(expected):
+                raise ValueError("Empty output or unexpected column names/types")
+        except Exception as error:
+            raise ValueError(
+                f"Existing Parquet needs review: {destination}\n"
+                "It has not been deleted or overwritten."
+            ) from error
+        kept += 1
+        print(f"KEEP {year}/{destination.name} (no TXT required)", flush=True)
 
     if not pending and not kept:
         raise FileNotFoundError(f"No loan datasets found under {EXTRACTED}")
     print(f"\nExisting: {kept} files. Missing: {len(pending)} files.", flush=True)
     if not pending:
         print("Nothing to convert.", flush=True)
-        return
+        return []
 
     print(f"Parallel workers: {workers}", flush=True)
     if workers == 1:
@@ -183,11 +200,13 @@ def main(workers=2):
                 # Already active workers finish before the pool closes.
                 raise
     print(f"\nFinished: {len(pending)} created; {kept} existing files kept.", flush=True)
+    return [destination for _, destination, _ in pending]
 
 
 if __name__ == "__main__":
     freeze_support()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workers", type=int, choices=(1, 2), default=2)
+    parser.add_argument("--years", nargs="+", type=int)
     args = parser.parse_args()
-    main(workers=args.workers)
+    main(workers=args.workers, years=args.years)

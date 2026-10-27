@@ -1,4 +1,4 @@
-"""Shared column order for the downloaded Freddie Mac Standard files.
+"""Part 1: shared column order for the downloaded Freddie Mac Standard files.
 
 Copied from the official July 2026 release headers previously stored with raw
 data. This is a file-format version, not an origination-year restriction.
