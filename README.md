@@ -174,3 +174,22 @@ Status recorded: 27 October 2026. Initial data-preparation pipeline complete.
 
 Part 1 code is in `src/data_extracting/`; its reports are saved in `results/data_extracting/`.
 
+## [2] Data preparation
+
+Run `src/data_preparation/pipeline.py` normally to prepare all full years from 2012 through 2025. Completed files are automatically checked and reused. A smaller selection can be specified with `--years`.
+
+- Reads Stage 1 Parquets without modifying them; writes separate cleaned Parquets under `data/prepared/<run_id>/<year>/`.
+- Trims surrounding spaces and converts blanks/configured missing codes to null. Source row counts and columns are preserved; unusual values and duplicates are flagged rather than silently removed.
+- Checks loan-ID joins, duplicate loan-months, internal monthly gaps, missing fields and configured numeric/date ranges.
+- Creates `cohort_candidates.parquet` with provisional 12-month outcomes, exclusion reasons, origination features and chronological split flags. This is a review table, not a frozen training dataset.
+- Writes a plain Markdown change report and source/configuration manifest to `results/data_preparation/<run_id>/`.
+- No imputation, scaling, final feature selection or model fitting. The report explains the provisional baseline, censoring, default-event and time-boundary rules that still require review.
+
+Requires `duckdb==2.0.0` from `requirements.txt`. Defaults to two engine threads, a 4 GB DuckDB memory budget and disk spilling; this is not a hard cap on total Python/OS memory. Stage 1 data is never overwritten.
+
+Cleaning now counts changes and writes cleaned output in one source pass using bounded Arrow batches. History flags share a single loan-month grouping instead of separately parsing the performance data twice. Exact speed gains have not been benchmarked.
+
+Normal runs automatically reuse saved progress for the same selected years, or extend an earlier run when all its years remain selected. Completed cleaned files are checked and skipped; an interrupted file restarts. The manifest is replaced atomically after each completed file. Reuse checks source sizes, modification times and row counts, plus output metadata and cached report counts; it does not revalidate every output value. Changed inputs or incompatible saved work cause an error instead of silently repeating cleaning. Incomplete uncached outputs are not overwritten.
+
+`--resume-run <run_id>` selects a specific saved run. Only `--new-run` intentionally repeats the work in a new folder. Stop the previous process before restarting; do not run two copies against the same saved run.
+
