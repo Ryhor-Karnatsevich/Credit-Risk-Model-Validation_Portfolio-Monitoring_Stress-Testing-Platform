@@ -195,7 +195,7 @@ Normal runs automatically reuse saved progress for the same selected years, or e
 
 ## [3] Logistic-regression input preparation
 
-Run `src/logistic_regression/preprocessing.py` normally for the 2012-2023 modelling scope. It selects a completed data-preparation run automatically. The original preprocessing run completed; the repayment-policy revision below is code-only and has not yet been run or runtime-validated.
+Run `src/logistic_regression/preprocessing.py` normally for the 2012-2023 modelling scope. It selects a completed data-preparation run automatically. The corrected repayment-policy run has completed: 19,609,717 eligible rows, comprising 7,770,079 development, 1,207,643 validation and 10,631,995 final-test observations. It retained 1,878,495 verified repayments as 0 and preserved existing bad-event labels. These are input-preparation counts, not model-performance results.
 
 - Checks loan IDs across the selected years and checks the existing temporal eligibility rules.
 - First applies the agreed repayment rule through `src/data_preparation/repayment_targets.py`: verified voluntary full repayment (code 01), adequate history through payoff and no prior qualifying bad event -> 0; an existing bad-event label remains 1, even if subsequently repaid. Unresolved exits/sales remain unknown. This is an observed outcome, not imputation.
@@ -208,4 +208,20 @@ Run `src/logistic_regression/preprocessing.py` normally for the 2012-2023 modell
 - Reuses compatible revised outputs after metadata checks; older-policy inputs are preserved but never reused for the new policy. Training medians/scales/categories are refitted because the eligible training population changes. No model is trained; other research rules remain provisional.
 
 Only the saved manifest's `feature_names` are predictors. Loan IDs, dates, split labels and the future outcome are metadata/targets, never predictors.
+
+## [4] First logistic-regression baseline
+
+Code written; training and synthetic tests have not been run by the assistant. After corrected preprocessing finishes, run `src/logistic_regression/train.py` normally in PyCharm; no parameters are needed.
+
+- Reads only completed `verified_repayment_v2` inputs and the explicit feature whitelist. Uses all eligible development loans, without sampling, class weights or oversampling.
+- Fits L2-regularized logistic regression with L-BFGS. Arrow batches and a preallocated sparse matrix keep the 90 encoded features from becoming a large dense table. The default allocation guard is 6 GiB, not a hard process/OS memory cap; actual runtime and memory use are not yet benchmarked.
+- Scores validation loans only. Reports ROC AUC/Gini, average precision, log loss, Brier score, calibration by risk band, observed-versus-predicted event rates, high-risk event capture and observation-year results.
+- Compares against a constant probability equal to the development bad-event rate. Overall accuracy is not used as the main success measure.
+- Records optimizer convergence, fitting time, coefficients and individual validation predictions. No probability recalibration or lending cutoff is selected automatically; no final-test scores are produced.
+- Saves `report.md`, `metrics.json`, `risk_bands.csv`, `coefficients.csv` and `validation_predictions.parquet` under `results/logistic_regression/<preparation_run>/verified_repayment_v2/baseline/`.
+- Saves numeric model weights (NPZ, no pickle) and fitted preprocessing settings under `data/models/logistic_regression/<preparation_run>/verified_repayment_v2/baseline/`. A matching rerun reuses weights and refreshes validation diagnostics; use `--name another_name` for an intentional new experiment with different settings.
+
+This is an exploratory baseline, not a model-approval decision. Nonconvergence is a visible failure to finalize the baseline; ranking, probability calibration and stability must be reviewed together before proceeding to ML or the final test.
+
+Current results for reading: [Main report](results/report.md). This short report is updated automatically when a model run finishes; run-specific folders contain supporting diagnostics and checkpoints.
 
