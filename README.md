@@ -193,3 +193,19 @@ Normal runs automatically reuse saved progress for the same selected years, or e
 
 `--resume-run <run_id>` selects a specific saved run. Only `--new-run` intentionally repeats the work in a new folder. Stop the previous process before restarting; do not run two copies against the same saved run.
 
+## [3] Logistic-regression input preparation
+
+Run `src/logistic_regression/preprocessing.py` normally for the 2012-2023 modelling scope. It selects a completed data-preparation run automatically. The original preprocessing run completed; the repayment-policy revision below is code-only and has not yet been run or runtime-validated.
+
+- Checks loan IDs across the selected years and checks the existing temporal eligibility rules.
+- First applies the agreed repayment rule through `src/data_preparation/repayment_targets.py`: verified voluntary full repayment (code 01), adequate history through payoff and no prior qualifying bad event -> 0; an existing bad-event label remains 1, even if subsequently repaid. Unresolved exits/sales remain unknown. This is an observed outcome, not imputation.
+- Reuses the cleaned Parquets without repeating cleaning. For this target update only five monthly columns are read, and only previously unlabelled early-exit IDs are grouped. Compatible corrected targets are reused on subsequent runs.
+- Preserves every base candidate row and records old labels/reasons plus repayment markers in `data/prepared/<preparation_run>/target_revisions/verified_repayment_v2/<year>/cohort_candidates.parquet`. The original preparation reports/candidates remain historical records under their original policy.
+- Excludes remaining unknown outcomes and split-ineligible loans; outcomes are never filled with guesses. Time boundaries are unchanged, and payoff confirmation cannot make outcome availability earlier than the original horizon-plus-lag assumption.
+- Learns numeric medians, scaling and category lists from eligible development rows only, then applies the same settings to validation/test rows.
+- Adds numeric missing-value indicators, encodes missing/unseen categories as unknown, and one-hot encodes categories. Borrower count is grouped as single/multiple to reconcile the historical disclosure change.
+- Writes revised model-input Parquets to `data/model_inputs/logistic_regression/<preparation_run>/verified_repayment_v2/` and a plain Markdown report plus fitted preprocessing settings to `results/logistic_regression/<preparation_run>/verified_repayment_v2/`. The report compares labels before/after and shows the newly included repayments. Target checkpoints are under the matching `results/data_preparation/<preparation_run>/target_revisions/verified_repayment_v2/` folder.
+- Reuses compatible revised outputs after metadata checks; older-policy inputs are preserved but never reused for the new policy. Training medians/scales/categories are refitted because the eligible training population changes. No model is trained; other research rules remain provisional.
+
+Only the saved manifest's `feature_names` are predictors. Loan IDs, dates, split labels and the future outcome are metadata/targets, never predictors.
+
