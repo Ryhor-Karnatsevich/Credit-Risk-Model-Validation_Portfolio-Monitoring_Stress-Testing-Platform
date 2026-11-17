@@ -339,3 +339,27 @@ Band 1 contains the highest predicted risks. Bands are approximately equal-sized
 Coefficients describe fitted associations, not causal effects. Numeric coefficients refer to standardized inputs; full one-hot categories are regularized jointly.
 Target, selection and temporal-design limitations still apply. No final-test performance, lending-profit estimate or approval decision is produced.
 
+## Year-stratified development and later-period evaluation
+
+Decision recorded: 5 November 2026. This is a separate experiment; the earlier baseline and walk-forward outputs remain historical results under their own splits.
+
+Fit one logistic model on a random 75% of eligible loans from EACH starting-observation year, 2012-2017. Hold out the other 25% in every year and report their results separately by year. Stratify by the binary outcome within each year to preserve natural event proportions, without class balancing. Use a fixed seed and save loan-ID assignments so reruns use the same loans.
+
+Only outcomes available before January 2020 enter the development-era population. Fit imputation, scaling, category vocabulary and coefficients on the combined 75% subsets only. Neither the held-out loans nor the later-period data fit those settings. The earlier-year holdouts measure retrospective generalisation to other loans from the same period; they are not forecasts that could have been issued in those earlier years.
+
+Evaluate the same frozen model on eligible starting observations in 2020, with their subsequent 12-month outcomes. The 2018-2019 observation years are outside this experiment's training and evaluation groups. The new design releases 2020 from the previously reserved 2020-2023 period. Once 2020 results guide development, that year is no longer an untouched final test; 2021-2023 remain reserved. Existing target rules and raw/prepared data are unchanged.
+
+The academic basis is the combination of same-period out-of-sample and later-period out-of-time evaluation in [Mushava and Murray (2024), section 4.1](https://pmc.ncbi.nlm.nih.gov/articles/PMC11220865/). The 75/25 ratio and selected dates are project choices, not requirements of that paper. This experiment supplements the temporal checks; it does not guarantee improved calibration or eliminate dependence on shared economic conditions.
+
+Implementation: `src/logistic_regression/year_stratified.py`. Main report after execution: `results/logistic_regression/year_stratified.md`. Saved splits, weights and completed evaluations are reused when inputs and settings match. Code written; results pending user execution.
+
+## 90/10 comparison with a shared holdout
+
+Decision recorded: 16 November 2026. The preceding 75/25 experiment has completed. Its assignments, fitted model and report are retained as reference results.
+
+The normal run of `src/logistic_regression/year_stratified.py` now fits on 90% of each 2012-2017 observation year's eligible population. A stratified 10% is selected from that year's saved 25% holdout. Every old training loan remains in training; the other 15% is added. The common 10% has been excluded from fitting both the saved 75% model and the new 90% model. Each model uses preprocessing learned only from its own training rows. Yearly comparison metrics use the common 10%, rather than comparing different holdout populations.
+
+Loan eligibility, January 2020 training-outcome availability cutoff, predictor list, logistic specification and the 2020 evaluation population are unchanged. The 75% model's compatible saved 2020 metrics can be reused; its same-period metrics must be recomputed on the smaller common holdout. 2021-2023 remain reserved. This is a diagnostic comparison on data already inspected, not a newly untouched final test.
+
+The smaller holdout trades some evaluation precision for more training observations. No improvement is assumed before execution. Normal runs use a new `year_stratified_90_10` experiment folder and save `results/logistic_regression/year_stratified_90_10.md`. Compatible progress is reused. Code updated; results pending user execution.
+
