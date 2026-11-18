@@ -363,3 +363,17 @@ Loan eligibility, January 2020 training-outcome availability cutoff, predictor l
 
 The smaller holdout trades some evaluation precision for more training observations. No improvement is assumed before execution. Normal runs use a new `year_stratified_90_10` experiment folder and save `results/logistic_regression/year_stratified_90_10.md`. Compatible progress is reused. Code updated; results pending user execution.
 
+## Detailed validation and error diagnosis
+
+Implementation recorded: 18 November 2026. The 90/10 run has now completed with 8,425,350 training loans. Comparing 75% and 90% training on identical holdout loans showed only small metric changes; the 2020 probability gap persists. The next sub-stage investigates the frozen 90% model rather than selecting another training percentage.
+
+Entry point: `src/model_validation/pipeline.py`. Main output: `results/model_validation/report.md`, with calibration PNGs for the 2017 holdout and 2020 evaluation. Supporting manifests live under the same results stage; streamed prediction and event caches are stored locally under `data/model_validation/`. Existing prepared data, assignments and model weights are read-only.
+
+The implementation reproduces saved evaluation counts, event counts and mean predictions before computing diagnostics. It uses fixed credit-score/LTV/DTI bands, DTI missingness, states, purpose, occupancy and channel; compares starting-month cohorts; checks saved target/date consistency; computes calibration-in-the-large plus joint calibration intercept/slope; and compares raw feature distributions with the 90% training population. Calibration regressions are diagnostic fits only and do not alter model probabilities. Their convergence is reported.
+
+AUC uncertainty uses a fixed-model DeLong placement-value approximation that handles ties. This loan-level interval does not include model-training uncertainty or shared economic shocks. A separate 2,000-replicate resampling of whole starting-month cohorts gives a descriptive O/E range. With only about 12 cohorts per year and overlapping outcome windows, that range is not a guarantee about future regimes. Calibration diagrams show equal-sized risk-group point estimates. PSI uses half-observation bin smoothing and is descriptive; no automatic approval thresholds are imposed.
+
+Source-event verification focuses on positive-labelled loans in the 2017 holdout and 2020 evaluation. Five cleaned performance columns reconstruct qualifying 90+ delinquency, RA and credit-exit 02/03/09 evidence, earliest effective event dates and reporting dates. Tied trigger types are retained. Source file counts/schema/bytes and cached progress are checked. It does not exhaustively verify negative labels or every source field. Actual event-month counts are kept separate from starting-cohort 12-month event rates.
+
+A normal run includes this narrower but potentially slower history scan and saves progress after each file. `--skip-event-history` gives core diagnostics with source verification marked skipped; a later normal run reuses existing progress. Original loans first observed in 2021-2023 stay reserved, while later monthly history of older evaluated loans can be read to verify their outcomes. No causal conclusion, lending approval or fitted correction follows automatically. Any subsequent adjustment requires separate fitting and evaluation samples. Code and small synthetic checks are complete; the mortgage-data pipeline has not been run by the assistant.
+
